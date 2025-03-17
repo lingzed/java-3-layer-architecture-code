@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapper代码生成</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+
+        .navbar {
+            display: flex;
+            background-color: #333;
+            padding: 0.5em;
+        }
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5em 1em;
+        }
+        .navbar a:hover {
+            background-color: #575757;
+        }
+
+        .input-container {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            width: 100%;
+        }
+
+        label {
+            margin-right: 10px;
+            font-weight: bold;
+            font-size: 16px;
+            white-space: nowrap;  /* 防止标签文字换行 */
+            flex-shrink: 0; /* 防止标签缩小 */
+            min-width: 100px;  /* 设置最小宽度 */
+            text-align: right;
+        }
+
+        input {
+            padding: 8px;
+            font-size: 14px;
+            flex-grow: 1;  /* 输入框占据剩余空间 */
+            max-width: 100%;  /* 确保输入框不超出父容器 */
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            border-color: #007BFF;
+            outline: none;
+        }
+
+        .radio-group {
+            display: flex;
+            align-items: center;
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: left;
+            gap: 5px; /* 让 radio 按钮和文本之间有间距 */
+            cursor: pointer; /* 鼠标悬停时变为手型，增强可点击性 */
+        }
+
+		.input-wrapper {
+		    display: flex;
+		    flex-direction: column;
+		    width: 100%;
+		}
+
+		.error-message {
+		    color: red;
+		    font-size: 14px;
+		    margin-top: 5px;
+		    display: none; /* 默认隐藏 */
+		}
+
+
+        button {
+            padding: 8px 16px;
+            margin-top: 10px;
+            cursor: pointer;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 10px;
+            font-size: 14px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            resize: vertical;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        h2 {
+            color: #333;
+            margin-top: 20px;
+        }
+
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="mapper代码生成.html">Mapper代码生成</a>
+    	<a href="mapper.xml.html">Mapper.xml代码生成</a>
+        <a href="service接口代码生成.html">Service接口代码生成</a>
+        <a href="service实现代码生成.html">Service实现代码生成</a>
+    </nav>
+
+    <div style="padding: 0 20px 0">
+        <h1>Mapper接口代码生成</h1>
+
+        <div>
+        	<div class="input-container">
+                <label for="package"><span style="color: red;">*</span> 包名:</label>
+                <div class="input-wrapper">
+	                <input type="text" id="package" value="com.ling" onblur="checkPackage(this.value)">
+	                <div class="error-message" id="interface-error_1">请输入包名</div>
+                </div>
+            </div>
+            <div class="input-container">
+                <label for="interface"><span style="color: red;">*</span> 接口名:</label>
+                <div class="input-wrapper">
+			        <input type="text" id="interface" placeholder="例如：UserMapper" onblur="createEntityAndQuery(this.value)">
+			        <div class="error-message" id="interface-error_2">请输入接口名</div>
+			    </div>
+            </div>
+            <div class="input-container">
+                <label for="queryDto">查询Dto:</label>
+                <input type="text" id="queryDto" placeholder="例如：UserQueryDto">
+            </div>
+            <div class="input-container">
+                <label for="entity">实体类型:</label>
+                <input type="text" id="entity" placeholder="例如：User">
+            </div>
+            <div class="input-container">
+                <label for="idType">id类型:</label>
+                <div class="radio-group">
+			        <label for="idTypeString">
+                        <input type="radio" id="idTypeString" name="idType" value="String" checked>String
+                    </label>
+                    <label for="idTypeInteger">
+                        <input type="radio" id="idTypeInteger" name="idType" value="Integer">Integer
+                    </label>
+			    </div>
+            </div>
+
+            <button onclick="generateCode()">生成代码</button>
+            <button onclick="copyToClipboard()">复制代码</button>
+            <button onclick="downloadResultFile()">下载代码</button>
+        </div>
+
+        <h2>生成的代码:</h2>
+        <textarea id="result" readonly></textarea>
+    </div>
+
+    <script>
+    	const interface = document.getElementById("interface");
+        const entity = document.getElementById("entity");
+        const query = document.getElementById("queryDto");
+        const package = document.getElementById("package");
+
+        // 替换code
+        function replaceeCode() {
+        	const pName = package.value;
+        	if (pName === null || pName === "") {
+        		alert("包名不能为空");
+            	throw Error("包名不能为空");
+        	}
+            const replace_1 = interface.value;
+            if(replace_1 === null || replace_1 === "") {
+            	alert("接口名不能为空");
+            	throw Error("接口名不能为空");
+            }
+            const replace_2 = query.value;
+            const replace_3 = "" + replace_2.charAt(0).toLowerCase() + replace_2.slice(1);
+            const replace_4 = entity.value;
+            const replace_5 = replace_4.charAt(0).toLowerCase() + replace_4.slice(1);
+            const replace_6 = document.querySelector('input[name="idType"]:checked').value;
+
+            const template = 
+        `package ${pName}.mappers;
+
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+@Mapper
+public interface ${replace_1} {
+    /** 
+     * 条件查询
+     * 
+     * @param ${replace_3}
+     */
+    List<${replace_4}> selectByCondition(${replace_2} ${replace_3});
+
+    /**
+     * 条件计数
+     * 
+     * @param ${replace_3}
+     */
+    Long countByCondition(${replace_2} ${replace_3});
+
+    /** 
+     * 查询所有
+     * 
+     */
+    List<${replace_4}> selectAll();
+
+    /**
+     * 计数所有
+     * 
+     */
+    Long countAll();
+
+    /** 
+     * 通过id查询
+     * 
+     * @param id
+     */
+    ${replace_4} selectById(${replace_6} id);
+
+    /** 
+     * 添加
+     * 
+     * @param ${replace_5}
+     */
+    void insert(${replace_4} ${replace_5});
+
+    /** 
+     * 批量添加
+     * 
+     * @param list
+     */
+    void batchInsert(List<${replace_4}> list);
+
+    /** 
+     * 编辑
+     * 
+     * @param ${replace_5}
+     */
+    void update(${replace_4} ${replace_5});
+
+    /** 
+     * 批量编辑
+     * 
+     * @param list
+     */
+    void batchUpdate(List<${replace_4}> list);
+
+    /** 
+     * 删除
+     * 
+     * @param list
+     */
+    void delete(List<${replace_6}> list);
+}`;
+
+            return template;
+        }
+
+        // 生成code
+        const generateCode = () => {
+        	const result = replaceeCode();
+        	document.getElementById("result").value = result;
+        }
+        
+        // 复制code
+        function copyToClipboard() {
+            const resultText = document.getElementById("result").value;
+            if (resultText) {
+                navigator.clipboard.writeText(resultText)
+                    .then(() => {
+                        alert("代码已复制到剪贴板！");
+                    })
+                    .catch(err => {
+                        alert("复制失败，错误：" + err);
+                    });
+            } else {
+                alert("没有生成代码可复制！");
+            }
+        }
+
+        // 下载code
+        const downloadResultFile = () => {
+        	const result = replaceeCode();
+        	const filename = interface.value + ".java";
+        	const blob = new Blob([result], { type: "text/plain" });
+        	const url = URL.createObjectURL(blob);
+        	const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 生成 实体名 && 查询实体名
+        const createEntityAndQuery = (val) => {
+        	// 校验接口名
+		    const errorDiv = document.getElementById("interface-error_2");
+		    if (!interface.value.trim()) {
+		        errorDiv.style.display = "block"; // 显示错误提示
+		        return;
+		    } else {
+		        errorDiv.style.display = "none"; // 隐藏错误提示
+		    }
+        	query.value = query.value ? query.value : val.replace("Mapper", "") + "Query";
+        	entity.value = entity.value ? entity.value : val.replace("Mapper", "");
+        }
+
+		// 校验包名
+        const checkPackage = (val) => {
+        	const errorDiv = document.getElementById("interface-error_1");
+		    if (!package.value.trim()) {
+		        errorDiv.style.display = "block"; // 显示错误提示
+		        return;
+		    } else {
+		        errorDiv.style.display = "none"; // 隐藏错误提示
+		    }
+        }
+    </script>
+
+</body>
+</html>
