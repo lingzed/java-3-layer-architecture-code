@@ -155,6 +155,7 @@
          <button onclick="sqlParse()">生成代码</button>
         <button onclick="copyToClipboard()">复制代码</button>
         <button onclick="downloadResultFile()">下载代码</button>
+        <button onclick="createJavaBean()">下载JavaBean</button>
     </div>
 
     <h2>生成的代码:</h2>
@@ -187,6 +188,19 @@
             decimal: 'float',
             numeric: 'float'
         };
+        const JAVA_TYPE = {
+        	varchar: "String",
+        	int: "Integer",
+        	tinyint: "Short",
+        	bigint: "Long",
+        	double: "Double",
+        	float: "Folat",
+        	date: "Date",
+        	datetime: "Date",
+        	timestamp: "Date",
+        	text: "String",
+        	char: "String"
+        }
         tablename = sql.match(/CREATE\s+TABLE\s+`?(\w+)`?/i)[1];
         // 提取表结构（增加多行注释处理）
         const fieldSection = sql.match(/\(([\s\S]+)\)\s*(comment|COLLATE)/i)?.[1] || sql.match(/\(([\s\S]+)\)/)?.[1];
@@ -221,6 +235,7 @@
                     name: nameMatch[1],
                     cameName: toCame(nameMatch[1]),
                     type: TYPE_MAPPING[typeMatch[1].toLowerCase()] || 'str',
+                    jType: JAVA_TYPE[typeMatch[1].toLowerCase()] || "String",
                     isPkey: cleanedLine.toLowerCase().includes('primary key')
                 };
             })
@@ -485,6 +500,56 @@ ${commonFields}
 	    } else {
 	        errorDiv.style.display = "none"; // 隐藏错误提示
 	    }
+    }
+
+    // 生成javaBean
+    const createJavaBean = () => {
+    	const pName = package.value;
+    	if (pName === null || pName === "") {
+    		alert("包名不能为空");
+        	throw Error("包名不能为空");
+    	}
+        const sql = document.getElementById("sql");
+        const sqlStr = sql.value;
+        if(sqlStr === null || sqlStr === "") {
+        	alert("sql不能为空");
+        	throw Error("sql不能为空");
+        }
+
+        fields = parseSQLFields(sqlStr);
+    	let tname = toCame(tablename, true);
+    	let pn = package.value;
+    	let beanNames = [tname, tname+"Query", tname+"Vo"];
+    	let templates = beanNames.map((e, index) => {
+    		let props = "";
+	    	fields.forEach((e, i) => {
+	    		let annotation =  "";
+	    		if (index === 2 && e.jType === "Date") {
+	    			annotation = `@JsonFormat(pattern = ${"yyyy-MM-dd"}, timezone = ${"GMT-8"})\n	`
+	    		}
+	    		props += `${annotation}private ${e.jType} ${toCame(e.name)};${i === fields.length - 1 ? "" : "\n"}	`;
+	    	})
+	    	const template = 
+`package ${pn}.entity.${index === 0 ? "po" : index === 1 ? "dto.query" : "vo"};
+${index === 2 ? "\nimport com.fasterxml.jackson.annotation.JsonFormat;\n" : ""}
+import java.util.Date;
+
+public class ${e} {
+	${props}
+}`
+			return template;
+    	});
+    	
+		templates.forEach((e, index) => {
+			const filename = `${beanNames[index]}.java`;
+	        const blob = new Blob([e], { type: "text/plain" });
+	        const url = URL.createObjectURL(blob);
+	        const a = document.createElement("a");
+	        a.href = url;
+	        a.download = filename;
+	        a.click();
+	        URL.revokeObjectURL(url);
+		});
     }
 </script>
 </body>

@@ -281,10 +281,19 @@ public interface ${interfaceName} {
 
     /** 
      * 通过id查询
+     * 返回: ${entityName}
      * 
      * @param id
      * */
     ${entityName} findById(${idType} id);
+
+    /** 
+     * 通过id查询
+     * 返回: ${entityName}Vo
+     * 
+     * @param id
+     * */
+    ${entityName}Vo findVoById(${idType} id);
 
     /** 
      * 添加

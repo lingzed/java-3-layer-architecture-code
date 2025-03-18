@@ -342,12 +342,26 @@ public class ${implName} implements ${service} {
 
     /** 
      * 通过id查询
+     * 返回: ${entityName}
      * 
      * @param id
      */
     @Override
     public ${entityName} findById(${idType} id) {
         return ${mapperName}.selectById(id);
+    }
+
+    /** 
+     * 通过id查询
+     * 返回: ${entityName}Vo
+     * 
+     * @param id
+     */
+    @Override
+    public ${entityName}Vo findVoById(${idType} id) {
+        ${entityName}Vo voBean = new ${entityName}Vo();
+        BeanUtils.copyProperties(findById(id), voBean);
+        return voBean;
     }
 
     /** 
